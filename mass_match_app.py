@@ -1,5 +1,6 @@
 import streamlit as st
 import itertools
+import time
 
 # --- Title ---
 st.title("🧮 Mass Match Finder")
@@ -77,44 +78,80 @@ def add_result(description, value, steps, results):
             description += f" = {custom_names[description]}"
         results.append((len(steps), error, description, value, error))
 
-# --- Calculation ---
+# --- Run Calculations ---
 results = []
 
-if run_main_only:
-    add_result(f"{selected_list_name} only", sum_selected, [], results)
-
-if run_additions:
-    for r in range(1, 4):
-        for combo in itertools.combinations_with_replacement(list2_add, r):
-            value = sum_selected + sum(combo)
-            add_result(f"{selected_list_name} + {combo}", value, combo, results)
-
-if run_subtractions:
-    for r in range(1, 4):
-        for combo in itertools.combinations(list2_sub, r):
-            value = sum_selected - sum(combo)
-            add_result(f"{selected_list_name} - {combo}", value, combo, results)
-
-if run_sub_add:
-    for sub in list2_sub:
-        for add in list2_add:
-            if sub == add:
-                continue
-            value = sum_selected - sub + add
-            add_result(f"{selected_list_name} - ({sub},) + ({add},)", value, [sub, add], results)
-
-if run_list2_only:
-    all_list2 = list2_add + [-v for v in list2_sub]
-    for r in range(2, 6):
-        for combo in itertools.combinations_with_replacement(all_list2, r):
-            value = sum(combo)
-            add_result(f"List2 only {combo}", value, combo, results)
-
-# --- Results display ---
 st.divider()
-if results:
-    st.success(f"Found {len(results)} matching combinations within ±{tolerance:.5f}")
-    for _, _, desc, val, error in sorted(results, key=lambda x: (x[0], x[1])):
-        st.write(f"🔹 `{desc}` = **{val:.5f}** (error: {error:.5f})")
-else:
-    st.warning("No matches found with current settings.")
+run_button = st.button("▶️ Run Matching Search")
+
+if run_button:
+    with st.spinner("Running calculations... this may take a moment ⏳"):
+        progress = st.progress(0)
+        total_steps = 1  # initialize a counter for progress tracking
+        current_step = 0
+
+        # Estimate total steps roughly
+        total_steps += sum(len(list(itertools.combinations_with_replacement(list2_add, r))) for r in range(1, 4)) if run_additions else 0
+        total_steps += sum(len(list(itertools.combinations(list2_sub, r))) for r in range(1, 4)) if run_subtractions else 0
+        total_steps += (len(list2_sub) * len(list2_add)) if run_sub_add else 0
+        if run_list2_only:
+            total_steps += sum(len(list(itertools.combinations_with_replacement(list2_add + [-v for v in list2_sub], r))) for r in range(2, 6))
+
+        # Main list only
+        if run_main_only:
+            add_result(f"{selected_list_name} only", sum_selected, [], results)
+            current_step += 1
+            progress.progress(min(current_step / total_steps, 1.0))
+
+        # Additions
+        if run_additions:
+            for r in range(1, 4):
+                for combo in itertools.combinations_with_replacement(list2_add, r):
+                    value = sum_selected + sum(combo)
+                    add_result(f"{selected_list_name} + {combo}", value, combo, results)
+                    current_step += 1
+                    if current_step % 50 == 0:
+                        progress.progress(min(current_step / total_steps, 1.0))
+
+        # Subtractions
+        if run_subtractions:
+            for r in range(1, 4):
+                for combo in itertools.combinations(list2_sub, r):
+                    value = sum_selected - sum(combo)
+                    add_result(f"{selected_list_name} - {combo}", value, combo, results)
+                    current_step += 1
+                    if current_step % 50 == 0:
+                        progress.progress(min(current_step / total_steps, 1.0))
+
+        # Sub + Add
+        if run_sub_add:
+            for sub in list2_sub:
+                for add in list2_add:
+                    if sub == add:
+                        continue
+                    value = sum_selected - sub + add
+                    add_result(f"{selected_list_name} - ({sub},) + ({add},)", value, [sub, add], results)
+                    current_step += 1
+                    if current_step % 50 == 0:
+                        progress.progress(min(current_step / total_steps, 1.0))
+
+        # List2 only
+        if run_list2_only:
+            all_list2 = list2_add + [-v for v in list2_sub]
+            for r in range(2, 6):
+                for combo in itertools.combinations_with_replacement(all_list2, r):
+                    value = sum(combo)
+                    add_result(f"List2 only {combo}", value, combo, results)
+                    current_step += 1
+                    if current_step % 100 == 0:
+                        progress.progress(min(current_step / total_steps, 1.0))
+
+        progress.progress(1.0)
+
+    # --- Results display ---
+    if results:
+        st.success(f"✅ Found {len(results)} matching combinations within ±{tolerance:.5f}")
+        for _, _, desc, val, error in sorted(results, key=lambda x: (x[0], x[1])):
+            st.write(f"🔹 `{desc}` = **{val:.5f}** (error: {error:.5f})")
+    else:
+        st.warning("No matches found with current settings.")
