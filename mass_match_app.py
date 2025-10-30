@@ -3,7 +3,7 @@ import itertools
 import time
 
 # --- Title ---
-st.title("🧮 Mass Match Finder")
+st.title("🧮 MassMatchFinderDynamicList ")
 st.markdown("Enter a target mass, tolerance, and choose which combinations to run.")
 
 # --- Input ---
