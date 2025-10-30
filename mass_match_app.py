@@ -54,7 +54,7 @@ for item in list2_raw:
 
 # --- Custom result names ---
 custom_names = {
-    "S_Tide + (1896.83,)": "S_Tide_Dimer",
+    "S_Tide + (0.984,)": "Deamination",
     "S_Tide + (56.06,)": "S_Tide + tBu",
     "Cyclic + (1896.83,)": "Cyclic_Dimer",
     "Cyclic + (0.984,)": "Cyclic_Deamination"
